@@ -12,7 +12,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.concurrent.TimeoutException;
 
 @Slf4j
-public class LogPublisher
+public class FanoutLogPublisher
 {
     public static void main(String[] args)
     {

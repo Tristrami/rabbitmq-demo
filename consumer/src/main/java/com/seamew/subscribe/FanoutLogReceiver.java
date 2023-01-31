@@ -4,13 +4,14 @@ import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import com.seamew.common.ConsumerCallback;
+import com.seamew.config.ExchangeConfig;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
 import java.util.concurrent.TimeoutException;
 
 @Slf4j
-public class LogReceiver
+public class FanoutLogReceiver
 {
     // 发布 / 订阅模式，LogPublisher 发布日志消息，多个 LogReceiver 实例订阅该消息
     // 测试方法: 先启动多个 LogReceiver 实例 (control + option + u 开启允许 idea 启动多个实例)，再启动 LogPublisher
@@ -24,7 +25,7 @@ public class LogReceiver
             Connection connection = connectionFactory.newConnection();
             Channel channel = connection.createChannel();
             // 先启动 LogReceiver 时，可能交换机不存在，所以先声明
-            channel.exchangeDeclare("logging-exchange", "fanout");
+            channel.exchangeDeclare(ExchangeConfig.SUBSCRIBE_PUBLISH_MODE_EXCHANGE_NAME, "fanout");
             // 创建一个随机名字的队列，这样做的原因是，我们想要每一个 LogReceiver 实例都订阅 LogPublisher 发送的消息，
             // 而 LogPublisher 将消息发送到了 fanout 类型的一个交换机，对于每一个 LogReceiver 实例来说，如果想要获取
             // 这个消息，就需要先声明一个队列和这个交换机绑定，然后 LogReceiver 就可以从这个队列中获取到消息，所以
@@ -34,7 +35,7 @@ public class LogReceiver
             // 使用 channel.queueDeclare() 声明的队列名字随机，会自动删除，不进行消息持久化，并且互斥
             String randomQueueName = channel.queueDeclare().getQueue();
             // 将这个队列和 fanout 交换机绑定
-            channel.queueBind(randomQueueName, "logging-exchange", "");
+            channel.queueBind(randomQueueName, ExchangeConfig.SUBSCRIBE_PUBLISH_MODE_EXCHANGE_NAME, "");
             log.info("Waiting for message from queue [{}] ...", randomQueueName);
             // 从队列中获取消息
             channel.basicConsume(randomQueueName, new ConsumerCallback(channel));
