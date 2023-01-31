@@ -24,7 +24,7 @@ $RABBITMQ_HOME/sbin/rabbitmq-plugins enable rabbitmq_management
 - A producer is a user application that sends messages.
 - An exchange is a very simple thing. On one side it receives messages from producers and the other side it pushes them to queues.The exchange must know exactly what to do with a message it receives. Should it be appended to a particular queue? Should it be appended to many queues? Or should it get discarded. The rules for that are defined by the exchange type.
   - <span id="exchange-type-fanout">fanout</span> : It broadcasts all the messages it receives to all the queues it knows
-  - <span id="exchange-type-direct">direct</span> : It forward the message to the queues whose binding key exactly matches the routing key of the message
+  - <span id="exchange-type-direct">direct</span> : It forwards the message to the queues whose binding key exactly matches the routing key of the message
   - <span id="exchange-type-topic">topic</span>
   - <span id="exchange-type-headers">headers</span>
 - A queue is a buffer that stores messages.
