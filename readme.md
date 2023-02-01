@@ -15,7 +15,7 @@ brew services start rabbitmq
 ```shell
 brew services stop rabbitmq
 ```
-开启 rabbitmq 的 web 监控台，rabbitmq 的 web 监控台默认的端口为 `15672`
+开启 rabbitmq 的 web 监控台，rabbitmq 的 web 监控台默认的端口为 `15672`，默认账号密码均为 `guest`
 ```shell
 $RABBITMQ_HOME/sbin/rabbitmq-plugins enable rabbitmq_management
 ```  
@@ -56,5 +56,17 @@ $RABBITMQ_HOME/sbin/rabbitmq-plugins enable rabbitmq_management
 > Receiving messages selectively\
 > https://rabbitmq.com/tutorials/tutorial-four-java.html
 
-生产者发送消息到 **[direct](#exchange-type-direct)** 类型的交换机中，交换机根据消息的routingKey，在与之绑定的队列中筛选出 bindingKey 和 routingKey 匹配的队列，将消息转发到这些队列中，该模式下，绑定在相同 direct 类型交换机上的队列，如果 bindingKey 相同，则会收到相同的消息\
+生产者发送消息到 **[direct](#exchange-type-direct)** 类型的交换机中，交换机根据消息的 routingKey，在与之绑定的队列中筛选出 bindingKey 和 routingKey 匹配的队列，将消息转发到这些队列中，该模式下，绑定在相同 direct 类型交换机上的队列，如果 bindingKey 相同，则会收到相同的消息\
 ![路由模式](https://rabbitmq.com/img/tutorials/python-four.png)
+
+#### 主题模式 - Topic
+> Receiving messages based on a pattern (topics)\
+> https://www.rabbitmq.com/tutorials/tutorial-five-java.html
+
+生产者发送消息到 **[topic](#exchange-type-topic)** 类型的交换机中，交换机根据消息的 routingKey，在与之绑定的队列中筛选出 bindingKey 和 routingKey 匹配的队列，与路由模式不同的是，在主题模式下，bindingKey 不在是简单的字符串，而是以 . 分隔的单词组，并且可以使用 **通配符** 代替单词
+- `*` 匹配 **一个** 单词
+- `#` 匹配 **零个或多个** 单词\
+eg : 假设系统日志可以用 `<facility>.<severity>` 来描述，那么当我们指定 bindingKey 为 `kernel.*` 时，表示我们对所有来自 kernel 的日志感兴趣；当我们指定 bindingKey 为 `*.error` 时，表示我们对所有 error 等级的日志感兴趣
+
+在 topic 模式下，我们可以通过使用不同的通配符和单词的组合，使交 topic 类型换机可以实现其他类型交换机的功能，例如指定 bindingKey 为 `#` 时，功能就类似于 fanout 类型交换机；指定 bindingKey 为 `kernel.error` 时，即明确给出了完整的 key，没有使用通配符，这时功能就类似于 direct 类型的交换机\
+![主题模式](https://www.rabbitmq.com/img/tutorials/python-five.png)

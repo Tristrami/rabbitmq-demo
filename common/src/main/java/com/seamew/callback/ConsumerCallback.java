@@ -1,4 +1,4 @@
-package com.seamew.common;
+package com.seamew.callback;
 
 import com.rabbitmq.client.AMQP;
 import com.rabbitmq.client.Channel;
@@ -25,6 +25,7 @@ public class ConsumerCallback extends DefaultConsumer
     @Override
     public void handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, byte[] body) throws IOException
     {
+        System.out.println("-----------------------------------------");
         // consumer 的唯一标识符
         log.info("ConsumerTag: [{}]", consumerTag);
         // 消息的唯一标识符

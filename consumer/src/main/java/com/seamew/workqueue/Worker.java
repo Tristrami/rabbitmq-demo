@@ -3,7 +3,7 @@ package com.seamew.workqueue;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
-import com.seamew.common.ConsumerCallback;
+import com.seamew.callback.ConsumerCallback;
 import com.seamew.config.QueueConfig;
 import lombok.extern.slf4j.Slf4j;
 

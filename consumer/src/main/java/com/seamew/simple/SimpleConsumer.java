@@ -1,7 +1,7 @@
 package com.seamew.simple;
 
 import com.rabbitmq.client.*;
-import com.seamew.common.ConsumerCallback;
+import com.seamew.callback.ConsumerCallback;
 import com.seamew.config.QueueConfig;
 import lombok.extern.slf4j.Slf4j;
 
