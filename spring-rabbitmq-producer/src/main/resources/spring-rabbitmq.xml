@@ -10,7 +10,11 @@
        http://www.springframework.org/schema/rabbit
        http://www.springframework.org/schema/rabbit/spring-rabbit.xsd">
 
+    <context:annotation-config />
     <context:property-placeholder location="classpath:rabbitmq.properties" />
+
+    <!-- 简单模式相关bean -->
+    <rabbit:queue id="${rabbitmq.queue.simpleMode.queueName}" name="${rabbitmq.queue.simpleMode.queueName}" auto-declare="true" />
 
     <!-- 创建 connectionFactory -->
     <rabbit:connection-factory id="connectionFactory"
