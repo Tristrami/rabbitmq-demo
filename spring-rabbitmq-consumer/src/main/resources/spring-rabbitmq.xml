@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:rabbit="http://www.springframework.org/schema/rabbit"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://www.springframework.org/schema/context
+       https://www.springframework.org/schema/context/spring-context.xsd
+       http://www.springframework.org/schema/rabbit
+       http://www.springframework.org/schema/rabbit/spring-rabbit.xsd">
+
+    <context:annotation-config />
+    <context:property-placeholder location="classpath:rabbitmq.properties" />
+
+    <!-- 简单模式相关bean -->
+    <rabbit:queue id="${rabbitmq.queue.simpleMode.queueName}" name="${rabbitmq.queue.simpleMode.queueName}" auto-declare="true" />
+
+    <!-- 创建 connectionFactory -->
+    <rabbit:connection-factory id="connectionFactory"
+                               host="${rabbitmq.host}"
+                               port="${rabbitmq.port}"
+                               virtual-host="${rabbitmq.virtualHost}"
+                               username="${rabbitmq.username}"
+                               password="${rabbitmq.password}" />
+
+    <!-- 创建一个 rabbit admin 对象来管理交换机、队列，以及两者间的绑定关系 -->
+    <rabbit:admin connection-factory="connectionFactory" />
+
+    <!-- 发布订阅模式相关 bean -->
+    <!-- 声明队列 -->
+    <rabbit:queue id="spring-fanout-queue-1" name="spring-fanout-queue-1" auto-declare="true" />
+    <rabbit:queue id="spring-fanout-queue-2" name="spring-fanout-queue-2" auto-declare="true" />
+    <!-- 声明交换机以及交换机和队列的绑定关系 -->
+    <rabbit:fanout-exchange id="spring-fanout-exchange" name="spring-fanout-exchange" auto-declare="true">
+        <rabbit:bindings>
+            <rabbit:binding queue="spring-fanout-queue-1" />
+            <rabbit:binding queue="spring-fanout-queue-2" />
+        </rabbit:bindings>
+    </rabbit:fanout-exchange>
+
+
+    <!-- 定义 rabbitTemplate 对象来收发消息，这个模板对象可以自动管理与 rabbitmq 服务的连接 -->
+    <rabbit:template id="rabbitTemplate" connection-factory="connectionFactory" />
+</beans>
