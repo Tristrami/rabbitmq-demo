@@ -11,10 +11,7 @@
        http://www.springframework.org/schema/rabbit/spring-rabbit.xsd">
 
     <context:annotation-config />
-    <context:property-placeholder location="classpath:rabbitmq.properties" />
-
-    <!-- 简单模式相关bean -->
-    <rabbit:queue id="${rabbitmq.queue.simpleMode.queueName}" name="${rabbitmq.queue.simpleMode.queueName}" auto-declare="true" />
+    <context:property-placeholder location="classpath*:/**/rabbitmq.properties" />
 
     <!-- 创建 connectionFactory -->
     <rabbit:connection-factory id="connectionFactory"
@@ -26,6 +23,12 @@
 
     <!-- 创建一个 rabbit admin 对象来管理交换机、队列，以及两者间的绑定关系 -->
     <rabbit:admin connection-factory="connectionFactory" />
+
+    <!-- 简单模式相关bean -->
+    <rabbit:queue id="${rabbitmq.queue.simpleMode.queueName}" name="${rabbitmq.queue.simpleMode.queueName}" auto-declare="true" />
+
+    <!-- 工作队列模式相关 bean -->
+    <rabbit:queue id="${rabbitmq.queue.workQueueMode.queueName}" name="${rabbitmq.queue.workQueueMode.queueName}" auto-declare="true" />
 
     <!-- 发布订阅模式相关 bean -->
     <!-- 声明队列 -->
