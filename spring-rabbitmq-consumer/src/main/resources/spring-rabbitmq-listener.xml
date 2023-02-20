@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:rabbit="http://www.springframework.org/schema/rabbit"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://www.springframework.org/schema/context
+       https://www.springframework.org/schema/context/spring-context.xsd
+       http://www.springframework.org/schema/rabbit
+       http://www.springframework.org/schema/rabbit/spring-rabbit.xsd">
+
+    <import resource="classpath*:/**/spring-rabbitmq.xml" />
+    <context:annotation-config />
+    <context:property-placeholder location="classpath*:/**/rabbitmq.properties" />
+
+    <!-- 声明消息监听器 -->
+    <!-- 简单模式消息监听器 -->
+    <bean id="simpleModeMessageListener" class="com.seamew.consumer.listener.SimpleModeMessageListener" />
+    <!-- 工作队列模式消息监听器 -->
+    <bean id="workQueueModeMessageListener1" class="com.seamew.consumer.listener.WorkQueueModeMessageListener" />
+    <bean id="workQueueModeMessageListener2" class="com.seamew.consumer.listener.WorkQueueModeMessageListener" />
+    <!-- 广播模式消息监听器 -->
+    <bean id="fanoutModeMessageListener" class="com.seamew.consumer.listener.SimpleModeMessageListener" />
+    <!-- 路由模式消息监听器 -->
+    <bean id="directModeMessageListener" class="com.seamew.consumer.listener.DirectModeMessageListener" />
+    <!-- 主题模式消息监听器 -->
+    <bean id="topicModeMessageListener" class="com.seamew.consumer.listener.TopicModeMessageListener" />
+
+    <!-- 指定消息监听器监听的队列 -->
+    <rabbit:listener-container connection-factory="connectionFactory">
+        <!-- 简单模式 -->
+        <rabbit:listener ref="simpleModeMessageListener" queues="spring-simple-mode-queue" />
+        <!-- 工作队列模式 -->
+        <rabbit:listener ref="workQueueModeMessageListener1" queues="spring-work-queue-mode-queue" />
+        <rabbit:listener ref="workQueueModeMessageListener2" queues="spring-work-queue-mode-queue" />
+        <!-- 广播模式 -->
+        <rabbit:listener ref="fanoutModeMessageListener" queues="spring-fanout-mode-queue1, spring-fanout-mode-queue2" />
+        <!-- 路由模式 -->
+        <rabbit:listener ref="directModeMessageListener" queues="spring-direct-mode-info-queue, spring-direct-mode-error-queue" />
+        <!--主题模式 -->
+        <rabbit:listener ref="topicModeMessageListener" queues="spring-topic-mode-all-queue, spring-topic-mode-error-queue, spring-topic-mode-kernel-queue" />
+    </rabbit:listener-container>
+
+</beans>

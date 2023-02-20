@@ -30,6 +30,7 @@
         <spring-rabbit.version>3.0.1</spring-rabbit.version>
         <spring-test.version>5.2.10.RELEASE</spring-test.version>
         <junit-jupiter-engine.version>5.9.2</junit-jupiter-engine.version>
+        <junit-jupiter-params.version>5.9.2</junit-jupiter-params.version>
     </properties>
 
     <dependencyManagement>
@@ -102,6 +103,13 @@
                 <scope>test</scope>
             </dependency>
 
+            <dependency>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter-params</artifactId>
+                <version>${junit-jupiter-params.version}</version>
+                <scope>test</scope>
+            </dependency>
+
         </dependencies>
     </dependencyManagement>
 
@@ -137,6 +145,13 @@
             <artifactId>junit-jupiter-engine</artifactId>
             <scope>test</scope>
         </dependency>
+
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-params</artifactId>
+            <scope>test</scope>
+        </dependency>
+
 
     </dependencies>
 
