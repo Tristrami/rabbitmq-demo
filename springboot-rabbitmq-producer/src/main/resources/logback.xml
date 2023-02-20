@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%date{HH:mm:ss} [%t] %logger - %m%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Additivity is set to true by default, that is children inherit the appenders of their ancestors by default.
+    If this variable is set to false then the appenders found in the ancestors of this logger are not used. However,
+    the children of this logger will inherit its appenders, unless the children have their additivity flag set to false too -->
+    <logger name="r" level="debug" additivity="false">
+        <appender-ref ref="STDOUT"/>
+    </logger>
+
+    <root level="ERROR">
+        <appender-ref ref="STDOUT"/>
+    </root>
+
+</configuration>

@@ -1,0 +1,7 @@
+spring:
+  rabbitmq:
+    host: localhost
+    port: 15672
+    virtual-host: /
+    username: seamew
+    password: ltr20001121
