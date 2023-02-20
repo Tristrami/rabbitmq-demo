@@ -47,7 +47,6 @@ public class MessageProducerTest
             log.debug("Sending message [{}]", message);
             rabbitTemplate.convertAndSend("", workQueueModeQueueName, message);
         }
-
     }
 
     @Test

@@ -61,6 +61,7 @@ public class MessageConsumerTest
     public void testFanoutLogReceive()
     {
         // 测试发布/订阅模式
+
     }
 
     @Test
