@@ -3,6 +3,11 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>2.7.8</version>
+    </parent>
 
     <groupId>com.seamew</groupId>
     <artifactId>rabbitmq-demo</artifactId>
@@ -13,6 +18,8 @@
         <module>common</module>
         <module>spring-rabbitmq-producer</module>
         <module>spring-rabbitmq-consumer</module>
+        <module>springboot-rabbitmq-consumer</module>
+        <module>springboot-rabbitmq-producer</module>
     </modules>
     <packaging>pom</packaging>
 
@@ -26,11 +33,11 @@
         <slf4j-api.version>1.7.36</slf4j-api.version>
         <lombok.version>1.18.24</lombok.version>
         <common.version>1.0-SNAPSHOT</common.version>
-        <spring-context.version>5.3.19</spring-context.version>
+        <spring-context.version>5.3.25</spring-context.version>
         <spring-rabbit.version>3.0.1</spring-rabbit.version>
-        <spring-test.version>5.2.10.RELEASE</spring-test.version>
-        <junit-jupiter-engine.version>5.9.2</junit-jupiter-engine.version>
-        <junit-jupiter-params.version>5.9.2</junit-jupiter-params.version>
+        <spring-test.version>5.3.25</spring-test.version>
+        <junit-jupiter-engine.version>5.7.0</junit-jupiter-engine.version>
+        <junit-jupiter-params.version>5.7.0</junit-jupiter-params.version>
     </properties>
 
     <dependencyManagement>
@@ -40,18 +47,6 @@
                 <groupId>org.projectlombok</groupId>
                 <artifactId>lombok</artifactId>
                 <version>${lombok.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>com.rabbitmq</groupId>
-                <artifactId>amqp-client</artifactId>
-                <version>${amqp-client.version}</version>
-                <exclusions>
-                    <exclusion>
-                        <groupId>org.slf4j</groupId>
-                        <artifactId>slf4j-api</artifactId>
-                    </exclusion>
-                </exclusions>
             </dependency>
 
             <dependency>
@@ -76,24 +71,6 @@
                 <groupId>com.seamew</groupId>
                 <artifactId>common</artifactId>
                 <version>${common.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.springframework</groupId>
-                <artifactId>spring-context</artifactId>
-                <version>${spring-context.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.springframework.amqp</groupId>
-                <artifactId>spring-rabbit</artifactId>
-                <version>${spring-rabbit.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.springframework</groupId>
-                <artifactId>spring-test</artifactId>
-                <version>${spring-test.version}</version>
             </dependency>
 
             <dependency>
@@ -139,19 +116,6 @@
             <groupId>com.seamew</groupId>
             <artifactId>common</artifactId>
         </dependency>
-
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-engine</artifactId>
-            <scope>test</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-params</artifactId>
-            <scope>test</scope>
-        </dependency>
-
 
     </dependencies>
 

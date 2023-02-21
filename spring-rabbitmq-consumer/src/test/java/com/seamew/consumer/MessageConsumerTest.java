@@ -57,6 +57,7 @@ public class MessageConsumerTest
     @ValueSource(strings = {"spring-fanout-mode-queue2"})
     public void testFanoutLogReceive(String queueName)
     {
+        // 测试发布/订阅模式
         // 测试广播模式模式，需启动多个 receiver 实例，第一个实例订阅 spring-fanout-mode-queue1，
         // 第二个实例订阅 spring-fanout-mode-queue2，启动前修改 @ValueSource 中的参数即可
         log.debug("Waiting for messages ...");
