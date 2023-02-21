@@ -12,6 +12,7 @@ public class MessageListenerTest
     @Test
     public void bootstrap()
     {
+        // 启动 spring 容器，使用死循环保证程序不会终止，以便观察 MessageListener
         while (true) {
 
         }
