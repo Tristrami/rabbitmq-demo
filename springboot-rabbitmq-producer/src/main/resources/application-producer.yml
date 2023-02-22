@@ -1,7 +1,9 @@
 spring:
   rabbitmq:
     host: localhost
-    port: 15672
+    port: 5672
     virtual-host: /
     username: seamew
     password: ltr20001121
+    publisher-returns: true
+    publisher-confirm-type: correlated
