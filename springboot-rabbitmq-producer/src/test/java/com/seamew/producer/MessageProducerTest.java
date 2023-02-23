@@ -1,6 +1,9 @@
 package com.seamew.producer;
 
+import com.seamew.producer.callback.ConfirmCallback;
+import com.seamew.producer.callback.ReturnCallback;
 import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,6 +15,15 @@ public class MessageProducerTest
 {
     @Autowired
     private RabbitTemplate rabbitTemplate;
+
+    @BeforeEach
+    public void init()
+    {
+        // 设置 confirm 模式回调函数
+        rabbitTemplate.setConfirmCallback(new ConfirmCallback());
+        // 设置 return 模式回调函数
+        rabbitTemplate.setReturnsCallback(new ReturnCallback());
+    }
 
     @Test
     public void testSimpleMessagePublish()
@@ -32,5 +44,13 @@ public class MessageProducerTest
         log.debug("Sending message [{}]", message);
         rabbitTemplate.convertAndSend("springboot-fanout-exchange", "", message);
         log.debug("Complete");
+    }
+
+    @Test
+    public void testConfirmCallback()
+    {
+        String message = "Confirm callback test";
+        log.debug("Sending message [{}]", message);
+        rabbitTemplate.convertAndSend("confirm-exchange", "confirm", message);
     }
 }

@@ -27,64 +27,16 @@
         <maven.compiler.source>19</maven.compiler.source>
         <maven.compiler.target>19</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <amqp-client.version>5.7.3</amqp-client.version>
-        <logback-core.version>1.2.11</logback-core.version>
-        <logback-classic.version>1.2.11</logback-classic.version>
-        <slf4j-api.version>1.7.36</slf4j-api.version>
-        <lombok.version>1.18.24</lombok.version>
         <common.version>1.0-SNAPSHOT</common.version>
-        <spring-context.version>5.3.25</spring-context.version>
-        <spring-rabbit.version>3.0.1</spring-rabbit.version>
-        <spring-test.version>5.3.25</spring-test.version>
-        <junit-jupiter-engine.version>5.7.0</junit-jupiter-engine.version>
-        <junit-jupiter-params.version>5.7.0</junit-jupiter-params.version>
     </properties>
 
     <dependencyManagement>
         <dependencies>
 
             <dependency>
-                <groupId>org.projectlombok</groupId>
-                <artifactId>lombok</artifactId>
-                <version>${lombok.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.slf4j</groupId>
-                <artifactId>slf4j-api</artifactId>
-                <version>${slf4j-api.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>ch.qos.logback</groupId>
-                <artifactId>logback-core</artifactId>
-                <version>${logback-core.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>ch.qos.logback</groupId>
-                <artifactId>logback-classic</artifactId>
-                <version>${logback-classic.version}</version>
-            </dependency>
-
-            <dependency>
                 <groupId>com.seamew</groupId>
                 <artifactId>common</artifactId>
                 <version>${common.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.junit.jupiter</groupId>
-                <artifactId>junit-jupiter-engine</artifactId>
-                <version>${junit-jupiter-engine.version}</version>
-                <scope>test</scope>
-            </dependency>
-
-            <dependency>
-                <groupId>org.junit.jupiter</groupId>
-                <artifactId>junit-jupiter-params</artifactId>
-                <version>${junit-jupiter-params.version}</version>
-                <scope>test</scope>
             </dependency>
 
         </dependencies>

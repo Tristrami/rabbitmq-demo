@@ -1,13 +1,17 @@
 package com.seamew.config;
 
 import org.springframework.amqp.core.*;
+import org.springframework.amqp.rabbit.connection.CachingConnectionFactory;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
+import org.springframework.amqp.rabbit.connection.RabbitConnectionFactoryBean;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.PropertySource;
 
 @Configuration
+@PropertySource("classpath:spring-rabbitmq/rabbitmq.properties")
 public class RabbitConfig
 {
     // 简单模式相关 bean
@@ -57,6 +61,58 @@ public class RabbitConfig
                 .bind(fanoutModeQueue2)
                 .to(fanoutExchange)
                 .with("")
+                .noargs();
+    }
+
+    // Confirm 模式相关 bean
+    @Bean("confirm-queue")
+    public Queue confirmQueue()
+    {
+        return new Queue("confirm-queue");
+    }
+
+    @Bean("confirm-exchange")
+    public Exchange confirmExchange()
+    {
+        return ExchangeBuilder
+                .directExchange("confirm-exchange")
+                .build();
+    }
+
+    @Bean("confirm-binding")
+    public Binding confirmBinding(@Qualifier("confirm-queue") Queue queue,
+                                  @Qualifier("confirm-exchange") Exchange exchange)
+    {
+        return BindingBuilder
+                .bind(queue)
+                .to(exchange)
+                .with("confirm")
+                .noargs();
+    }
+
+    // Return 模式相关 bean
+    @Bean("return-queue")
+    public Queue returnQueue()
+    {
+        return new Queue("return-queue");
+    }
+
+    @Bean("return-exchange")
+    public Exchange returnExchange()
+    {
+        return ExchangeBuilder
+                .directExchange("return-exchange")
+                .build();
+    }
+
+    @Bean("return-binding")
+    public Binding returnBinding(@Qualifier("return-queue") Queue queue,
+                                 @Qualifier("return-exchange") Exchange exchange)
+    {
+        return BindingBuilder
+                .bind(queue)
+                .to(exchange)
+                .with("return")
                 .noargs();
     }
 }
