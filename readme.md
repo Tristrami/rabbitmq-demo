@@ -70,3 +70,168 @@ eg : 假设系统日志可以用 `<facility>.<severity>` 来描述，那么当�
 
 在 topic 模式下，我们可以通过使用不同的通配符和单词的组合，使交 topic 类型换机可以实现其他类型交换机的功能，例如指定 bindingKey 为 `#` 时，功能就类似于 fanout 类型交换机；指定 bindingKey 为 `kernel.error` 时，即明确给出了完整的 key，没有使用通配符，这时功能就类似于 direct 类型的交换机\
 ![主题模式](https://www.rabbitmq.com/img/tutorials/python-five.png)
+
+### RabbitMQ 高级特性
+
+#### 消息可靠投递
+
+##### Confirm 模式
+> 在 Confirm 模式开启的情况下，当生产者给 broker 发消息后，如果消息成功到达了交换机，那么生产者会收到一个确认消息，如果消息未能发送到交换机，生产者也会收到错误消息。这种机制能够确保消息准确的发送到交换机
+
+配置方式 - 以 Springboot 为例
+
+在 `application.yml` 中设置 `ConnectionFactory` 中的 `publisherConfirmType` 为 `correlated`
+```yaml
+spring:
+  rabbitmq:
+    host: localhost
+    port: 5672
+    virtual-host: /
+    username: seamew
+    password: ltr20001121
+    publisher-confirm-type: correlated
+```
+
+Confirm 模式回调函数
+```java
+package com.seamew.callback;
+
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.rabbit.connection.CorrelationData;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+
+@Slf4j(topic = "r.ConfirmCallback")
+public class ConfirmCallback implements RabbitTemplate.ConfirmCallback
+{
+    @Override
+    public void confirm(CorrelationData correlationData, boolean ack, String cause)
+    {
+        if (ack) {
+            log.debug("Message received");
+        } else {
+            log.debug("Fail to receive message. Cause: {}", cause);
+        }
+    }
+}
+```
+
+在 `RabbitTemplate` 中设置 Confirm 模式的回调函数
+```java
+rabbitTemlate.setConfirmCallback(new ConfirmCallback());
+```
+
+##### Return 模式
+
+> 在 Return 模式开启的情况下，当生产者给 broker 发消息并且交换机成功接收到消息后，如果未能成功将消息发送到队列，那么 broker 会向生产者 "退回" 该消息，以告知生产者这条消息发送失败了
+
+Return 模式配置方式 - 以 Springboot 为例
+
+在 `application.yml` 中设置 `ConnectionFactory` 的 `publisherReturns` 属性为 `true`，并设置 `RabbitTemplate` 的 `mandatory` 属性为 `true`
+```yaml
+spring:
+  rabbitmq:
+    host: localhost
+    port: 5672
+    virtual-host: /
+    username: seamew
+    password: ltr20001121
+    publisher-returns: true
+    template:
+      mandatory: true
+```
+
+Return 模式回调函数
+```java
+package com.seamew.callback;
+
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.core.Message;
+import org.springframework.amqp.core.ReturnedMessage;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+
+@Slf4j(topic = "r.ReturnCallback")
+public class ReturnCallback implements RabbitTemplate.ReturnsCallback
+{
+    @Override
+    public void returnedMessage(ReturnedMessage returned)
+    {
+        int replyCode = returned.getReplyCode();
+        String replyText = returned.getReplyText();
+        Message message = returned.getMessage();
+        String exchange = returned.getExchange();
+        String routingKey = returned.getRoutingKey();
+        log.debug("ReplyCode: [{}]", replyCode);
+        log.debug("ReplyText: [{}]", replyText);
+        log.debug("Message: [{}]", message);
+        log.debug("Exchange: [{}]", exchange);
+        log.debug("RoutingKey: [{}]", routingKey);
+    }
+}
+```
+
+在 `RabbitTemplate` 中设置 Return 模式的回调函数
+```java
+rabbitTemplate.setReturnsCallback(new ReturnCallback());
+```
+
+##### 消费者手动 ACK
+> 消费者成功从队列中接收到消息后，可能会执行一些业务逻辑处理，如果整个过程没有发生错误，消费者可以手动确认接收消息，如果发生错误，消费者可以拒收消息，并可以选择是否要将消息重新放入队列中。这种方式保证了当消费者接收到消息执行业务逻辑出错后，消息不会丢失
+
+配置方式 - 以 Springboot 为例
+
+在 `application.yml` 中配置 `ListenerContainer` 的 `acknowledgeMode` 属性为 `manual`
+```yaml
+server:
+  port: 9010
+
+spring:
+  rabbitmq:
+    host: localhost
+    port: 5672
+    virtual-host: /
+    username: seamew
+    password: ltr20001121
+    listener:
+      simple:
+        acknowledge-mode: manual
+      direct:
+        acknowledge-mode: manual
+```
+
+使用 `@RabbitListener` 方法监听消息
+```java
+@RabbitListener(queues = "ack-queue")
+public void onMessageDoManualAck(Message message, Channel channel) throws IOException
+{
+    MessageProperties messageProperties = message.getMessageProperties();
+    long deliveryTag = messageProperties.getDeliveryTag();
+    try {
+        // Some business logic ...
+        log.debug("Do some business logic ...");
+        // 设置 50% 的概率发生异常
+        double random = Math.random();
+        if (random <= 0.5) {
+            // 如果业务逻辑未发生异常，就签收消息
+            channel.basicAck(deliveryTag, false);
+            log.debug("basicAck() performed");
+        } else {
+            int i = 1 / 0;
+        }
+    } catch (Exception e) {
+        log.debug("Error occurred! Performing basicNack()", e);
+        // 如果业务逻辑发生异常，拒签消息，并将消息重新放入队列中，这里要注意，由于监听器还在监听该队列，
+        // 一旦消息放回队列，onMessageDoManualAck 方法有回被重新执行，一直循环往复，直至方法不抛出异常
+        channel.basicNack(deliveryTag, false, true);
+        log.debug("basicNack() performed");
+    }
+}
+```
+
+##### 消息可靠性投递总结
+- 持久化
+  - Exchange 持久化
+  - Queue 持久化
+  - Message 持久化
+- 生产者启用 broker 的消息确认 (Confirm) 和退回 (Return) 模式
+- 消费者收到消息后手动确认接收消息 (Ack)
+- Broker 高可用

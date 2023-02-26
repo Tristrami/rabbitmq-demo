@@ -1,19 +1,43 @@
 package com.seamew.config;
 
+import com.seamew.callback.ConfirmCallback;
+import com.seamew.callback.ReturnCallback;
 import org.springframework.amqp.core.*;
 import org.springframework.amqp.rabbit.connection.CachingConnectionFactory;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.connection.RabbitConnectionFactoryBean;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.PropertySource;
+import org.springframework.context.annotation.*;
 
 @Configuration
 @PropertySource("classpath:spring-rabbitmq/rabbitmq.properties")
 public class RabbitConfig
 {
+    @Autowired
+    private ConnectionFactory connectionFactory;
+
+    @Bean
+    @Primary
+    public RabbitTemplate rabbitTemplate()
+    {
+        return new RabbitTemplate(connectionFactory);
+    }
+
+    @Bean
+    public RabbitTemplate rabbitTemplateWithCallback()
+    {
+        RabbitTemplate rabbitTemplate = new RabbitTemplate(connectionFactory);
+        // 设置 confirm 模式回调函数
+        rabbitTemplate.setConfirmCallback(new ConfirmCallback());
+        // 设置 return 模式回调函数
+        rabbitTemplate.setReturnsCallback(new ReturnCallback());
+        // 设置消息发送失败时进行人工处理
+        rabbitTemplate.setMandatory(true);
+        return rabbitTemplate;
+    }
+
     // 简单模式相关 bean
     @Bean("springboot-simple-queue")
     public Queue simpleModeQueue()
@@ -114,5 +138,12 @@ public class RabbitConfig
                 .to(exchange)
                 .with("return")
                 .noargs();
+    }
+
+    // Ack 模式相关 bean
+    @Bean("ack-queue")
+    public Queue ackQueue()
+    {
+        return new Queue("ack-queue");
     }
 }
