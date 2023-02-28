@@ -1,0 +1,15 @@
+server:
+  port: 9010
+
+spring:
+  rabbitmq:
+    host: localhost
+    port: 5672
+    virtual-host: /
+    username: seamew
+    password: ltr20001121
+    listener:
+      simple:
+        acknowledge-mode: manual
+      direct:
+        acknowledge-mode: manual
