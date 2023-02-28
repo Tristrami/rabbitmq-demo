@@ -1,6 +1,7 @@
 package com.seamew.callback;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.core.ReturnedMessage;
 import org.springframework.amqp.rabbit.connection.CorrelationData;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 
@@ -13,7 +14,7 @@ public class ConfirmCallback implements RabbitTemplate.ConfirmCallback
         if (ack) {
             log.debug("Message received");
         } else {
-            log.debug("Fail to receive message. Cause: {}", cause);
+            log.debug("Fail to receive message");
         }
     }
 }

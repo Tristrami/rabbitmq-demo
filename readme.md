@@ -69,7 +69,495 @@ $RABBITMQ_HOME/sbin/rabbitmq-plugins enable rabbitmq_management
 eg : 假设系统日志可以用 `<facility>.<severity>` 来描述，那么当我们指定 bindingKey 为 `kernel.*` 时，表示我们对所有来自 kernel 的日志感兴趣；当我们指定 bindingKey 为 `*.error` 时，表示我们对所有 error 等级的日志感兴趣
 
 在 topic 模式下，我们可以通过使用不同的通配符和单词的组合，使交 topic 类型换机可以实现其他类型交换机的功能，例如指定 bindingKey 为 `#` 时，功能就类似于 fanout 类型交换机；指定 bindingKey 为 `kernel.error` 时，即明确给出了完整的 key，没有使用通配符，这时功能就类似于 direct 类型的交换机\
-![主题模式](https://www.rabbitmq.com/img/tutorials/python-five.png)
+![主题模式](https://www.rabbitmq.com/img/tutorials/python-five.png)\
+
+### RabbitMQ 整合 Spring
+
+#### 引入依赖
+```xml
+<dependency>
+    <groupId>org.springframework</groupId>
+    <artifactId>spring-context</artifactId>
+</dependency>
+
+<dependency>
+    <groupId>org.springframework.amqp</groupId>
+    <artifactId>spring-rabbit</artifactId>
+</dependency>
+```
+
+#### 在配置文件中声明队列、交换机及绑定关系
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:rabbit="http://www.springframework.org/schema/rabbit"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://www.springframework.org/schema/context
+       https://www.springframework.org/schema/context/spring-context.xsd
+       http://www.springframework.org/schema/rabbit
+       http://www.springframework.org/schema/rabbit/spring-rabbit.xsd">
+
+    <context:annotation-config />
+    <context:property-placeholder location="classpath*:/**/rabbitmq.properties" />
+
+    <!-- 创建 connectionFactory -->
+    <rabbit:connection-factory id="connectionFactory"
+                               host="${rabbitmq.host}"
+                               port="${rabbitmq.port}"
+                               virtual-host="${rabbitmq.virtualHost}"
+                               username="${rabbitmq.username}"
+                               password="${rabbitmq.password}" />
+
+    <!-- 创建一个 rabbit admin 对象来管理交换机、队列，以及两者间的绑定关系 -->
+    <rabbit:admin connection-factory="connectionFactory" />
+
+    <!-- 简单模式相关bean -->
+    <rabbit:queue id="spring-simple-mode-queue" name="spring-simple-mode-queue" auto-declare="true" />
+
+    <!-- 工作队列模式相关 bean -->
+    <rabbit:queue id="spring-work-queue-mode-queue" name="spring-work-queue-mode-queue" auto-declare="true" />
+
+    <!-- 广播模式相关 bean -->
+    <!-- 声明队列 -->
+    <rabbit:queue id="spring-fanout-mode-queue1" name="spring-fanout-mode-queue1" />
+    <rabbit:queue id="spring-fanout-mode-queue2" name="spring-fanout-mode-queue2" />
+    <!-- 声明交换机和绑定关系 -->
+    <rabbit:fanout-exchange id="spring-fanout-mode-exchange"
+                            name="spring-fanout-mode-exchange"
+                            auto-declare="true">
+        <rabbit:bindings>
+            <rabbit:binding queue="spring-fanout-mode-queue1" />
+            <rabbit:binding queue="spring-fanout-mode-queue2" />
+        </rabbit:bindings>
+    </rabbit:fanout-exchange>
+
+    <!-- 路由模式相关 bean -->
+    <!-- 声明队列 -->
+    <rabbit:queue id="spring-direct-mode-info-queue" name="spring-direct-mode-info-queue" />
+    <rabbit:queue id="spring-direct-mode-error-queue" name="spring-direct-mode-error-queue" />
+    <!-- 声明交换机和绑定关系 -->
+    <rabbit:direct-exchange id="spring-direct-mode-exchange"
+                            name="spring-direct-mode-exchange">
+        <rabbit:bindings>
+            <rabbit:binding queue="spring-direct-mode-info-queue"
+                            key="info" />
+            <rabbit:binding queue="spring-direct-mode-error-queue"
+                            key="error" />
+        </rabbit:bindings>
+    </rabbit:direct-exchange>
+    
+    <!-- 主题模式相关 bean -->
+    <!-- 声明队列 -->
+    <rabbit:queue id="spring-topic-mode-kernel-queue" name="spring-topic-mode-kernel-queue" />
+    <rabbit:queue id="spring-topic-mode-error-queue" name="spring-topic-mode-error-queue" />
+    <rabbit:queue id="spring-topic-mode-all-queue" name="spring-topic-mode-all-queue" />
+    <!-- 声明交换机和绑定关系 -->
+    <rabbit:topic-exchange id="spring-topic-mode-exchange"
+                           name="spring-topic-mode-exchange">
+        <rabbit:bindings>
+            <rabbit:binding queue="spring-topic-mode-kernel-queue"
+                            pattern="kernel.*" />
+            <rabbit:binding queue="spring-topic-mode-error-queue"
+                            pattern="*.error" />
+            <rabbit:binding queue="spring-topic-mode-all-queue"
+                            pattern="#" />
+        </rabbit:bindings>
+    </rabbit:topic-exchange>
+
+    <!-- 定义 rabbitTemplate 对象来收发消息，这个模板对象可以自动管理与 rabbitmq 服务的连接 -->
+    <rabbit:template id="rabbitTemplate" connection-factory="connectionFactory" />
+
+</beans>
+```
+
+#### 在 consumer 服务中编写 listener
+
+基础 listener
+```java
+package com.seamew.consumer.listener;
+
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.core.Message;
+import org.springframework.amqp.core.MessageListener;
+import org.springframework.amqp.core.MessageProperties;
+
+@Slf4j(topic = "r.BasicMessageListener")
+public class BasicMessageListener implements MessageListener
+{
+    @Override
+    public void onMessage(Message message)
+    {
+        MessageProperties messageProperties = message.getMessageProperties();
+        String routingKey = messageProperties.getReceivedRoutingKey();
+        String queueName = messageProperties.getConsumerQueue();
+        String body = new String(message.getBody());
+        log.debug("Message: [{}], routing key: [{}], queue name: [{}]", body, routingKey, queueName);
+    }
+}
+```
+简单模式消息 listener
+```java
+package com.seamew.consumer.listener;
+
+import org.springframework.amqp.core.MessageListener;
+import org.springframework.stereotype.Component;
+
+@Component
+public class SimpleModeMessageListener extends BasicMessageListener implements MessageListener
+{
+
+}
+```
+工作队列模式 listener
+```java
+package com.seamew.consumer.listener;
+
+import org.springframework.amqp.core.MessageListener;
+
+public class WorkQueueModeMessageListener extends BasicMessageListener implements MessageListener
+{
+
+}
+```
+广播模式 listener
+```java
+package com.seamew.consumer.listener;
+
+import org.springframework.amqp.core.MessageListener;
+
+public class FanoutModeMessageListener extends BasicMessageListener implements MessageListener
+{
+
+}
+
+```
+路由模式 listener
+```java
+package com.seamew.consumer.listener;
+
+import org.springframework.amqp.core.MessageListener;
+
+public class DirectModeMessageListener extends BasicMessageListener implements MessageListener
+{
+
+}
+```
+主题模式 listener
+```java
+package com.seamew.consumer.listener;
+
+import org.springframework.amqp.core.MessageListener;
+
+public class TopicModeMessageListener extends BasicMessageListener implements MessageListener
+{
+
+}
+
+```
+
+#### 在 consumer 服务中编写配置文件将 listener 放入容器中
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:rabbit="http://www.springframework.org/schema/rabbit"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://www.springframework.org/schema/context
+       https://www.springframework.org/schema/context/spring-context.xsd
+       http://www.springframework.org/schema/rabbit
+       http://www.springframework.org/schema/rabbit/spring-rabbit.xsd">
+
+    <import resource="classpath*:/**/spring-rabbitmq.xml" />
+    <context:annotation-config />
+    <context:property-placeholder location="classpath*:/**/rabbitmq.properties" />
+
+    <!-- 声明消息监听器 -->
+    <!-- 简单模式消息监听器 -->
+    <bean id="simpleModeMessageListener" class="com.seamew.consumer.listener.SimpleModeMessageListener" />
+    <!-- 工作队列模式消息监听器 -->
+    <bean id="workQueueModeMessageListener1" class="com.seamew.consumer.listener.WorkQueueModeMessageListener" />
+    <bean id="workQueueModeMessageListener2" class="com.seamew.consumer.listener.WorkQueueModeMessageListener" />
+    <!-- 广播模式消息监听器 -->
+    <bean id="fanoutModeMessageListener" class="com.seamew.consumer.listener.SimpleModeMessageListener" />
+    <!-- 路由模式消息监听器 -->
+    <bean id="directModeMessageListener" class="com.seamew.consumer.listener.DirectModeMessageListener" />
+    <!-- 主题模式消息监听器 -->
+    <bean id="topicModeMessageListener" class="com.seamew.consumer.listener.TopicModeMessageListener" />
+
+    <!-- 指定消息监听器监听的队列 -->
+    <rabbit:listener-container connection-factory="connectionFactory">
+        <!-- 简单模式 -->
+        <rabbit:listener ref="simpleModeMessageListener" queues="spring-simple-mode-queue" />
+        <!-- 工作队列模式 -->
+        <rabbit:listener ref="workQueueModeMessageListener1" queues="spring-work-queue-mode-queue" />
+        <rabbit:listener ref="workQueueModeMessageListener2" queues="spring-work-queue-mode-queue" />
+        <!-- 广播模式 -->
+        <rabbit:listener ref="fanoutModeMessageListener" queues="spring-fanout-mode-queue1, spring-fanout-mode-queue2" />
+        <!-- 路由模式 -->
+        <rabbit:listener ref="directModeMessageListener" queues="spring-direct-mode-info-queue, spring-direct-mode-error-queue" />
+        <!--主题模式 -->
+        <rabbit:listener ref="topicModeMessageListener" queues="spring-topic-mode-all-queue, spring-topic-mode-error-queue, spring-topic-mode-kernel-queue" />
+    </rabbit:listener-container>
+
+</beans>
+```
+
+#### 编写测试类
+
+producer 服务使用 `RabbitTemplate` 发送消息
+```java
+package com.seamew.producer;
+
+import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
+
+// 使用 spring 的 extension 运行测试用例，这样就可以在测试用例中使用 spring 容器相关功能
+// junit5 的 @ExtendWith(SpringExtension.class) 替换了 junit4 的 @RunWith(SpringRunner.class) 注解
+@ExtendWith(SpringExtension.class)
+// 指明 spring 配置文件位置
+@ContextConfiguration("classpath:spring-rabbitmq-producer.xml")
+@Slf4j(topic = "r.MessageProducerTest")
+public class MessageProducerTest
+{
+    @Autowired
+    private RabbitTemplate rabbitTemplate;
+  
+    @Test
+    public void testSimpleMessagePublish()
+    {
+        // 简单模式测试
+        // 简单模式下消息会被发送到默认交换机，并以队列名称作为路由键将消息转发到相应的队列中
+        String message = "Simple mode";
+        log.debug("Sending message [{}]", message);
+        rabbitTemplate.convertAndSend("", "spring-simple-mode-queue", message);
+        log.debug("Complete");
+    }
+}
+```
+
+consumer 服务使用死循环让程序一直运行，以便等待消息
+```java
+package com.seamew.consumer;
+
+import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.SpringBootTest;
+
+@SpringBootTest(classes = ConsumerApplication.class)
+@Slf4j(topic = "r.MessageConsumerTest")
+public class MessageConsumerTest
+{
+    @Test
+    public void bootstrap()
+    {
+        log.debug("Waiting for messages ...");
+        while (true) {
+
+        }
+    }
+}
+```
+
+### RabbitMQ 整合 Springboot
+
+#### 声明队列、交换机及绑定关系
+
+编写 @Configuration 类声明队列、交换机及绑定关系
+```java
+package com.seamew.config;
+
+import org.springframework.amqp.core.*;
+import org.springframework.amqp.rabbit.connection.ConnectionFactory;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+@Configuration
+public class RabbitConfig
+{
+    // 简单模式相关 bean
+    @Bean("springboot-simple-queue")
+    public Queue simpleModeQueue()
+    {
+        return new Queue("springboot-simple-queue");
+    }
+
+    // 广播模式相关 bean
+    @Bean("springboot-fanout-queue1")
+    public Queue fanoutModeQueue1()
+    {
+        return new Queue("springboot-fanout-queue1");
+    }
+
+    @Bean("springboot-fanout-queue2")
+    public Queue fanoutModeQueue2()
+    {
+        return new Queue("springboot-fanout-queue2");
+    }
+
+    @Bean("springboot-fanout-exchange")
+    public Exchange fanoutModeExchange()
+    {
+        return ExchangeBuilder
+                .fanoutExchange("springboot-fanout-exchange")
+                .build();
+    }
+
+    @Bean("springboot-fanout-binding1")
+    public Binding fanoutModeBinding1(@Qualifier("springboot-fanout-queue1") Queue fanoutModeQueue1,
+                                     @Qualifier("springboot-fanout-exchange") Exchange fanoutExchange)
+    {
+        return BindingBuilder
+                .bind(fanoutModeQueue1)
+                .to(fanoutExchange)
+                .with("")
+                .noargs();
+    }
+
+    @Bean("springboot-fanout-binding2")
+    public Binding fanoutModeBinding2(@Qualifier("springboot-fanout-queue2") Queue fanoutModeQueue2,
+                                     @Qualifier("springboot-fanout-exchange") Exchange fanoutExchange)
+    {
+        return BindingBuilder
+                .bind(fanoutModeQueue2)
+                .to(fanoutExchange)
+                .with("")
+                .noargs();
+    }
+}
+```
+
+#### 创建 listener
+在 consumer 服务中创建 listener，直接在方法上加上 `@RabbitListener` 即可
+```java
+package com.seamew.consumer.listener;
+
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.core.Message;
+import org.springframework.amqp.core.MessageProperties;
+import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.stereotype.Component;
+
+@Component
+@Slf4j(topic = "r.RabbitMessageListener")
+public class RabbitMessageListener
+{
+    @RabbitListener(queues = "springboot-simple-queue")
+    public void onSimpleModeMessage(Message message)
+    {
+        MessageProperties messageProperties = message.getMessageProperties();
+        String routingKey = messageProperties.getReceivedRoutingKey();
+        String queueName = messageProperties.getConsumerQueue();
+        String body = new String(message.getBody());
+        log.debug("Message: [{}], routing key: [{}], queue name: [{}]", body, routingKey, queueName);
+    }
+
+    @RabbitListener(queues = { "springboot-fanout-queue1", "springboot-fanout-queue2" })
+    public void onFanoutModeMessage(Message message)
+    {
+        MessageProperties messageProperties = message.getMessageProperties();
+        String routingKey = messageProperties.getReceivedRoutingKey();
+        String queueName = messageProperties.getConsumerQueue();
+        String body = new String(message.getBody());
+        log.debug("Message: [{}], routing key: [{}], queue name: [{}]", body, routingKey, queueName);
+    }
+}
+```
+
+#### 编写配置文件
+
+在 producer 服务中编写配置文件
+```yaml
+spring:
+  rabbitmq:
+    host: localhost
+    port: 15672
+    virtual-host: /
+    username: seamew
+    password: ltr20001121
+```
+
+#### 测试
+
+在 consumer 服务中加上启动类后，编写测试类
+
+```java
+package com.seamew.consumer;
+
+import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.SpringBootTest;
+
+@SpringBootTest(classes = ConsumerApplication.class)
+@Slf4j(topic = "r.MessageConsumerTest")
+public class MessageConsumerTest
+{
+    @Test
+    public void bootstrap()
+    {
+        log.debug("Waiting for messages ...");
+        while (true) {
+
+        }
+    }
+}
+```
+
+在 producer 服务中加上启动类后，编写测试类
+
+```java
+package com.seamew.producer;
+
+import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.Test;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+
+@SpringBootTest(classes = ProducerApplication.class)
+@Slf4j(topic = "r.MessageProducer")
+public class MessageProducerTest
+{
+    @Autowired
+    private RabbitTemplate rabbitTemplate;
+
+    @Test
+    public void testSimpleMessagePublish()
+    {
+        // 简单模式测试
+        // 简单模式下消息会被发送到默认交换机，并以队列名称作为路由键将消息转发到相应的队列中
+        String message = "Simple mode";
+        log.debug("Sending message [{}]", message);
+        rabbitTemplate.convertAndSend("", "springboot-simple-queue", message);
+        log.debug("Complete");
+    }
+
+    @Test
+    public void testFanoutLogPublish()
+    {
+        // 发布/订阅模式测试
+        String message = "Fanout mode log";
+        log.debug("Sending message [{}]", message);
+        rabbitTemplate.convertAndSend("springboot-fanout-exchange", "", message);
+        log.debug("Complete");
+    }
+}
+```
 
 ### RabbitMQ 高级特性
 
