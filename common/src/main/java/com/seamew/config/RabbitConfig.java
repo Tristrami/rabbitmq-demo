@@ -11,6 +11,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.*;
 
+import java.util.HashMap;
+import java.util.Map;
+
 @Configuration
 @PropertySource("classpath:spring-rabbitmq/rabbitmq.properties")
 public class RabbitConfig
@@ -145,5 +148,15 @@ public class RabbitConfig
     public Queue ackQueue()
     {
         return new Queue("ack-queue");
+    }
+
+    // TTL 相关 bean
+    @Bean("ttl-queue")
+    public Queue ttlQueue()
+    {
+        Map<String, Object> arguments = new HashMap<>();
+        // 设置队列中消息的超时时间
+        arguments.put("x-message-ttl", 10000);
+        return new Queue("ttl-queue", true, false, false, arguments);
     }
 }

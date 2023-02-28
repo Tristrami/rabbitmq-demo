@@ -1,9 +1,11 @@
 package com.seamew.producer;
 
+import com.seamew.processor.TTLMessagePostProcessor;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.springframework.amqp.core.MessagePostProcessor;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -70,5 +72,17 @@ public class MessageProducerTest
         String message = "Consumer acknowledgement";
         log.debug("Sending message [{}]", message);
         rabbitTemplate.convertAndSend("ack-queue", message);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = { "5000", "10000", "5000", "10000" })
+    public void testSendingMessageWithTTL(String ttl)
+    {
+        // 消息发送后去 rabbitmq 控制台找到相应队列看消息数量变化情况
+        MessagePostProcessor messagePostProcessor = new TTLMessagePostProcessor(ttl);
+        String message = "Expiration time " + ttl;
+        log.debug("Sending message [{}]", message);
+        rabbitTemplate.convertAndSend("", "ttl-queue", message, messagePostProcessor);
+        log.debug("Complete");
     }
 }

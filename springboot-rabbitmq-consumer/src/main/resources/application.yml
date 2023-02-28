@@ -10,6 +10,8 @@ spring:
     password: ltr20001121
     listener:
       simple:
-        acknowledge-mode: manual
+        acknowledge-mode: manual # 消息手动确认
+        prefetch: 2
       direct:
-        acknowledge-mode: manual
+        acknowledge-mode: manual # 消息手动确认
+        prefetch: 2 # 消费者端限流，配置每个消费者最多可以有多少个未确认的消息
